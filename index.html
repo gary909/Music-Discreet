@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discreet Music Machine</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- LEFT COLUMN: Synths & Sequencers -->
+        <div class="left-column">
+            <div class="synths-row">
+                <!-- Synth 1 -->
+                <div class="panel synth-panel" id="synth1">
+                    <h3>Synth 1</h3>
+                    <div class="controls-grid">
+                        <div class="control"><label>Wave</label><select id="s1-wave"><option>sine</option><option>triangle</option><option>sawtooth</option><option>square</option></select></div>
+                        <div class="control"><label>Attack</label><input type="range" id="s1-atk" min="0.01" max="5" step="0.01" value="0.5"></div>
+                        <div class="control"><label>Decay</label><input type="range" id="s1-dec" min="0.01" max="5" step="0.01" value="2.0"></div>
+                        <div class="control"><label>Cutoff</label><input type="range" id="s1-cut" min="20" max="10000" value="1000"></div>
+                        <div class="control"><label>Res</label><input type="range" id="s1-res" min="0" max="20" value="2"></div>
+                        <div class="control"><label>Trill</label><input type="range" id="s1-trill" min="0" max="100" value="0"></div>
+                        <div class="control"><label>Trill Key</label><input type="checkbox" id="s1-trill-key"></div>
+                        <div class="control"><label>Reverb</label><input type="range" id="s1-rev" min="0" max="1" step="0.01" value="0.3"></div>
+                        <div class="control"><label>MIDI Ch</label><select id="s1-midi"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+                    </div>
+                </div>
+
+                <!-- Synth 2 -->
+                <div class="panel synth-panel" id="synth2">
+                    <h3>Synth 2</h3>
+                    <div class="controls-grid">
+                        <div class="control"><label>Wave</label><select id="s2-wave"><option>sine</option><option>triangle</option><option>sawtooth</option><option>square</option></select></div>
+                        <div class="control"><label>Attack</label><input type="range" id="s2-atk" min="0.01" max="5" step="0.01" value="1.0"></div>
+                        <div class="control"><label>Decay</label><input type="range" id="s2-dec" min="0.01" max="5" step="0.01" value="3.0"></div>
+                        <div class="control"><label>Cutoff</label><input type="range" id="s2-cut" min="20" max="10000" value="800"></div>
+                        <div class="control"><label>Res</label><input type="range" id="s2-res" min="0" max="20" value="1"></div>
+                        <div class="control"><label>Trill</label><input type="range" id="s2-trill" min="0" max="100" value="0"></div>
+                        <div class="control"><label>Trill Key</label><input type="checkbox" id="s2-trill-key"></div>
+                        <div class="control"><label>Reverb</label><input type="range" id="s2-rev" min="0" max="1" step="0.01" value="0.4"></div>
+                        <div class="control"><label>MIDI Ch</label><select id="s2-midi"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sequencers Area -->
+            <div class="panel sequencer-panel">
+                <div class="seq-header">
+                    <h3>Sequencer 1 (Phasing Loop A)</h3>
+                    <label>Length (Bars): <select id="seq1-length"><option value="8">8</option><option value="12" selected>12</option><option value="16">16</option></select></label>
+                </div>
+                <div class="piano-roll" id="roll1"></div>
+
+                <div class="seq-header" style="margin-top: 20px;">
+                    <h3>Sequencer 2 (Phasing Loop B)</h3>
+                    <label>Length (Bars): <select id="seq2-length"><option value="8">8</option><option value="12">12</option><option value="14" selected>14</option><option value="16">16</option></select></label>
+                </div>
+                <div class="piano-roll" id="roll2"></div>
+            </div>
+            
+            <!-- Transport -->
+            <div class="transport">
+                <button id="play-btn">Play / Pause</button>
+                <div class="tempo-control">
+                    <label>Tempo (BPM): <input type="number" id="bpm-input" value="60"></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: EQ & FX Chain -->
+        <div class="right-column">
+            <div class="panel eq-panel">
+                <div class="eq-sliders" id="eq-sliders">
+                    <!-- Sliders injected via JS -->
+                </div>
+            </div>
+            
+            <div class="arrow-down">▼</div>
+
+            <div class="panel delay-panel" id="delay1">
+                <div class="controls-grid single-row">
+                    <div class="control knob-red"><label>Time</label><input type="range" min="0" max="2" step="0.01" value="0.5"></div>
+                    <div class="control knob-white"><label>Fback</label><input type="range" min="0" max="0.9" step="0.01" value="0.4"></div>
+                    <div class="control knob-green"><label>Filter</label><input type="range" min="20" max="5000" value="2000"></div>
+                    <div class="control knob-blue"><label>Mix</label><input type="range" min="0" max="1" step="0.01" value="0.3"></div>
+                </div>
+            </div>
+
+            <div class="arrow-down">▼</div>
+
+            <div class="panel delay-panel" id="delay2">
+                <div class="controls-grid single-row">
+                    <div class="control knob-red"><label>Time</label><input type="range" min="0" max="2" step="0.01" value="0.75"></div>
+                    <div class="control knob-white"><label>Fback</label><input type="range" min="0" max="0.9" step="0.01" value="0.6"></div>
+                    <div class="control knob-green"><label>Filter</label><input type="range" min="20" max="5000" value="1500"></div>
+                    <div class="control knob-blue"><label>Mix</label><input type="range" min="0" max="1" step="0.01" value="0.2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
