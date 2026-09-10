@@ -1,9 +1,10 @@
 let audioCtx;
 let midiAccess = null;
 let isPlaying = false;
-let masterGain, eqNodes = [], delay1, delay2, reverbNode;
+let masterGain, eqNodes = [], delay1, delay2, reverbNode, synth1ReverbGain, synth2ReverbGain;
 
 // Sequencer State
+
 // For Discreet Music, a "step" here could be a quarter note. 
 // e.g. 12 bars in 4/4 = 48 steps. 14 bars = 56 steps.
 let seq1Steps = 48; 
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('bpm-input').addEventListener('input', (e) => tempo = e.target.value);
     document.getElementById('seq1-length').addEventListener('change', (e) => {
-        seq1Steps = parseInt(e.target.value) * 4; // Assuming 4 beats per bar
+        seq1Steps = parseInt(e.target.value) * 4;  // Assuming 4 beats per bar
     });
     document.getElementById('seq2-length').addEventListener('change', (e) => {
         seq2Steps = parseInt(e.target.value) * 4;
@@ -51,11 +52,34 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initAudioAndMidi() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     
-    // Master Chain
+    // Master Gain
     masterGain = audioCtx.createGain();
     masterGain.gain.value = 0.5;
-    
-    // 10 Band EQ Setup
+
+    // --- REVERB SETUP ---
+    reverbNode = audioCtx.createConvolver();
+    reverbNode.buffer = createImpulseResponse(audioCtx, 3.0, 2.0); // 3 sec ambient hall tail
+
+    synth1ReverbGain = audioCtx.createGain();
+    synth2ReverbGain = audioCtx.createGain();
+
+    synth1ReverbGain.gain.value = parseFloat(document.getElementById('s1-rev').value);
+    synth2ReverbGain.gain.value = parseFloat(document.getElementById('s2-rev').value);
+
+    // Reverb send listeners
+    document.getElementById('s1-rev').addEventListener('input', (e) => {
+        if (synth1ReverbGain) synth1ReverbGain.gain.setValueAtTime(e.target.value, audioCtx.currentTime);
+    });
+    document.getElementById('s2-rev').addEventListener('input', (e) => {
+        if (synth2ReverbGain) synth2ReverbGain.gain.setValueAtTime(e.target.value, audioCtx.currentTime);
+    });
+
+    // Route Reverb to Master
+    synth1ReverbGain.connect(reverbNode);
+    synth2ReverbGain.connect(reverbNode);
+    reverbNode.connect(masterGain);
+
+    // --- 10-BAND EQ SETUP ---
     const eqFrequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
     let lastNode = masterGain;
     
@@ -64,11 +88,11 @@ async function initAudioAndMidi() {
         filter.type = "peaking";
         filter.frequency.value = freq;
         filter.Q.value = 1.41;
-        filter.gain.value = 0; // Controlled by UI
+        filter.gain.value = 0;
         lastNode.connect(filter);
         lastNode = filter;
         eqNodes.push(filter);
-        
+
         // Link EQ UI
         const slider = document.getElementById(`eq-band-${i}`);
         if(slider) {
@@ -76,16 +100,15 @@ async function initAudioAndMidi() {
         }
     });
 
-    // Delays Setup (Simplified as feedback delays)
-    delay1 = createDelayEffect(lastNode, 0.5, 0.4, 2000);
-    delay2 = createDelayEffect(delay1.output, 0.75, 0.6, 1500);
+    // --- DELAYS SETUP & EVENT LISTENERS ---
+    // Delay 1: 3.0s initial default
+    delay1 = createDelayEffect(lastNode, 3.0, 0.4, 2000, 0.3);
+    // Delay 2: 6.0s max delay
+    delay2 = createDelayEffect(delay1.output, 6.0, 0.6, 1500, 0.2);
     delay2.output.connect(audioCtx.destination);
 
-    // Reverb Setup (Impulse Response approximation)
-    reverbNode = audioCtx.createConvolver();
-    // In production, load a real Impulse Response audio file here via fetch
-    // For this prototype, bypassing actual convolution buffering for brevity, routing direct:
-    masterGain.connect(audioCtx.destination); 
+    bindDelayControls('delay1', delay1);
+    bindDelayControls('delay2', delay2);
 
     // MIDI Setup
     try {
@@ -96,32 +119,85 @@ async function initAudioAndMidi() {
     }
 }
 
-function createDelayEffect(inputNode, time, feedback, cutoff) {
-    const delayNode = audioCtx.createDelay(5.0);
+// Procedural impulse response generator for ambient reverb
+function createImpulseResponse(ctx, duration, decay) {
+    const sampleRate = ctx.sampleRate;
+    const length = sampleRate * duration;
+    const impulse = ctx.createBuffer(2, length, sampleRate);
+    const left = impulse.getChannelData(0);
+    const right = impulse.getChannelData(1);
+
+    for (let i = 0; i < length; i++) {
+        const n = i;
+        left[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+        right[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+    }
+    return impulse;
+}
+
+function createDelayEffect(inputNode, time, feedback, cutoff, mix) {
+    const delayNode = audioCtx.createDelay(10.0); // Allow max 10s buffer space
     const feedbackGain = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
-    const outGain = audioCtx.createGain();
+    const dryGain = audioCtx.createGain();
+    const wetGain = audioCtx.createGain();
+    const outputNode = audioCtx.createGain();
 
     delayNode.delayTime.value = time;
     feedbackGain.gain.value = feedback;
+    filter.type = 'lowpass';
     filter.frequency.value = cutoff;
+
+    dryGain.gain.value = 1 - mix;
+    wetGain.gain.value = mix;
+
+    // Routing
+    inputNode.connect(dryGain);
+    dryGain.connect(outputNode);
 
     inputNode.connect(delayNode);
     delayNode.connect(filter);
     filter.connect(feedbackGain);
     feedbackGain.connect(delayNode);
-    
-    delayNode.connect(outGain);
-    inputNode.connect(outGain); // Dry signal
 
-    return { input: delayNode, output: outGain };
+    filter.connect(wetGain);
+    wetGain.connect(outputNode);
+
+    return {
+        input: inputNode,
+        output: outputNode,
+        setTime: (val) => delayNode.delayTime.setValueAtTime(val, audioCtx.currentTime),
+        setFeedback: (val) => feedbackGain.gain.setValueAtTime(val, audioCtx.currentTime),
+        setFilter: (val) => filter.frequency.setValueAtTime(val, audioCtx.currentTime),
+        setMix: (val) => {
+            dryGain.gain.setValueAtTime(1 - val, audioCtx.currentTime);
+            wetGain.gain.setValueAtTime(val, audioCtx.currentTime);
+        }
+    };
+}
+
+function bindDelayControls(containerId, delayEffect) {
+    const container = document.getElementById(containerId);
+    
+    container.querySelector('.delay-time').addEventListener('input', (e) => {
+        delayEffect.setTime(parseFloat(e.target.value));
+    });
+    container.querySelector('.delay-fback').addEventListener('input', (e) => {
+        delayEffect.setFeedback(parseFloat(e.target.value));
+    });
+    container.querySelector('.delay-filter').addEventListener('input', (e) => {
+        delayEffect.setFilter(parseFloat(e.target.value));
+    });
+    container.querySelector('.delay-mix').addEventListener('input', (e) => {
+        delayEffect.setMix(parseFloat(e.target.value));
+    });
 }
 
 // Generates the visual piano roll grid
 function initUI() {
     createPianoRoll('roll1', seq1Data, 64); // Render 64 steps visually
     createPianoRoll('roll2', seq2Data, 64);
-    
+
     // Inject EQ sliders
     const eqContainer = document.getElementById('eq-sliders');
     for(let i = 0; i < 10; i++) {
@@ -165,7 +241,7 @@ function nextNote() {
 }
 
 function scheduleNote(step1, step2, time) {
-    // Synth 1 check
+     // Synth 1 check
     for (let row = 0; row < 12; row++) {
         if (seq1Data[row][step1]) playSynthAndMIDI(1, scale[row], time);
     }
@@ -196,12 +272,13 @@ function scheduler() {
     timerID = setTimeout(scheduler, lookahead);
 }
 
+ // 1. Play Internal Web Audio Synth
 function playSynthAndMIDI(synthNum, midiNote, time) {
-    // 1. Play Internal Web Audio Synth
     const wave = document.getElementById(`s${synthNum}-wave`).value;
     const atk = parseFloat(document.getElementById(`s${synthNum}-atk`).value);
     const dec = parseFloat(document.getElementById(`s${synthNum}-dec`).value);
     const cut = parseFloat(document.getElementById(`s${synthNum}-cut`).value);
+    const res = parseFloat(document.getElementById(`s${synthNum}-res`).value);
     
     const osc = audioCtx.createOscillator();
     const vca = audioCtx.createGain();
@@ -212,6 +289,7 @@ function playSynthAndMIDI(synthNum, midiNote, time) {
     
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(cut, time);
+    filter.Q.setValueAtTime(res, time); 
     
     // Envelope
     vca.gain.setValueAtTime(0, time);
@@ -220,18 +298,20 @@ function playSynthAndMIDI(synthNum, midiNote, time) {
 
     osc.connect(filter);
     filter.connect(vca);
+
+    // Route dry to master gain, wet send to reverb bus
     vca.connect(masterGain);
+    if (synthNum === 1 && synth1ReverbGain) vca.connect(synth1ReverbGain);
+    if (synthNum === 2 && synth2ReverbGain) vca.connect(synth2ReverbGain);
     
     osc.start(time);
     osc.stop(time + atk + dec);
 
-    // 2. Transmit Web MIDI
+    // Web MIDI Output / Transmit Web MIDI
     if (midiAccess) {
         const midiChannel = parseInt(document.getElementById(`s${synthNum}-midi`).value) - 1;
         const noteOnMessage = [0x90 + midiChannel, midiNote, 0x7f]; 
         const noteOffMessage = [0x80 + midiChannel, midiNote, 0x00];
-        
-        // Convert audio time context to DOMHighResTimeStamp for MIDI
         const timeToSchedule = performance.now() + ((time - audioCtx.currentTime) * 1000);
         
         for (let output of midiAccess.outputs.values()) {
