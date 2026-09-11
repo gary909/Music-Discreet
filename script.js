@@ -86,11 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tempo & Sequence length dynamic updates
     document.getElementById('bpm-input').addEventListener('input', (e) => tempo = parseFloat(e.target.value));
+    
     document.getElementById('seq1-length').addEventListener('change', (e) => {
         seq1Steps = parseInt(e.target.value) * 4;
+        updateDisabledSteps('roll1', seq1Steps);
     });
+    
     document.getElementById('seq2-length').addEventListener('change', (e) => {
         seq2Steps = parseInt(e.target.value) * 4;
+        updateDisabledSteps('roll2', seq2Steps);
     });
 });
 
@@ -358,6 +362,10 @@ function initUI() {
     createPianoRoll('roll1', seq1Data, 64);
     createPianoRoll('roll2', seq2Data, 64);
 
+    // Initial disabled step highlighting based on active length
+    updateDisabledSteps('roll1', seq1Steps);
+    updateDisabledSteps('roll2', seq2Steps);
+
     const eqContainer = document.getElementById('eq-sliders');
     for (let i = 0; i < 10; i++) {
         const wrap = document.createElement('div');
@@ -412,14 +420,39 @@ function createPianoRoll(containerId, dataArray, visualSteps) {
         for (let col = 0; col < visualSteps; col++) {
             const cell = document.createElement('div');
             cell.className = 'pr-cell';
+            
+            // Add vertical bar border on every 4th step boundary
+            if ((col + 1) % 4 === 0) {
+                cell.classList.add('bar-end');
+            }
+
             cell.id = `${containerId}-r${row}-c${col}`;
             cell.addEventListener('click', () => {
+                // Prevent toggling steps that are outside the selected bar length
+                if (cell.classList.contains('disabled')) return;
+
                 dataArray[row][col] = !dataArray[row][col];
                 cell.classList.toggle('active', dataArray[row][col]);
             });
             rowDiv.appendChild(cell);
         }
         container.appendChild(rowDiv);
+    }
+}
+
+// Toggle .disabled class on grid cells depending on step limit
+function updateDisabledSteps(containerId, activeSteps) {
+    for (let row = 0; row < 12; row++) {
+        for (let col = 0; col < 64; col++) {
+            const cell = document.getElementById(`${containerId}-r${row}-c${col}`);
+            if (cell) {
+                if (col >= activeSteps) {
+                    cell.classList.add('disabled');
+                } else {
+                    cell.classList.remove('disabled');
+                }
+            }
+        }
     }
 }
 

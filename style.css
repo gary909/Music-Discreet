@@ -89,10 +89,26 @@ h3 {
     width: 30px;
     background: #fff;
     cursor: pointer;
+    box-sizing: border-box;
 }
-.pr-cell:hover { background: #eee; }
+.pr-cell:hover:not(.disabled) { background: #eee; }
 .pr-cell.active { background: #4a90e2; }
 .pr-cell.playing { background: #f39c12; }
+
+/* Bar boundary dividing line (every 4th step) */
+.pr-cell.bar-end {
+    border-right: 1.2px solid #888;
+}
+
+/* Inaccessible / Greyed out steps */
+.pr-cell.disabled {
+    background: #f0f0f0;
+    opacity: 0.4;
+    /* cursor: not-allowed; */
+}
+.pr-cell.disabled.active {
+    background: #8faecf; /* Muted active note color when beyond selected length */
+}
 
 /* Vertical Sliders for 10-Band EQ */
 .eq-panel { width: 100%; }
