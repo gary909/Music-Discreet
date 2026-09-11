@@ -201,6 +201,16 @@
                 <div class="transport-main">
                     <button id="play-btn">Play / Pause</button>
                     <div class="tempo-control">
+                        <label>Scale: 
+                            <select id="scale-select">
+                                <option value="pentatonic" selected>Pentatonic Major</option>
+                                <option value="pentatonicMinor">Pentatonic Minor</option>
+                                <option value="major">Major / Ionian</option>
+                                <option value="minor">Natural Minor</option>
+                                <option value="dorian">Dorian</option>
+                                <option value="chromatic">Chromatic</option>
+                            </select>
+                        </label>
                         <label>Tempo (BPM): <input type="number" id="bpm-input" value="60"></label>
                     </div>
                 </div>

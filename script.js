@@ -19,7 +19,15 @@ let tempo = 60.0;
 let timerID;
 
 // Basic Pentatonic Scale (MIDI Pitch Values) for generative phase interplay
-const scale = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86].reverse();
+const scales = {
+    pentatonic: [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86].reverse(),
+    pentatonicMinor: [60, 63, 65, 67, 70, 72, 75, 77, 79, 82, 84, 87].reverse(),
+    major: [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79].reverse(),
+    minor: [60, 62, 63, 65, 67, 68, 70, 72, 74, 75, 77, 79].reverse(),
+    dorian: [60, 62, 63, 65, 67, 69, 70, 72, 74, 75, 77, 79].reverse(),
+    chromatic: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71].reverse()
+};
+let currentScale = [...scales.pentatonic];
 
 // Sequencer Grid State Storage (12 rows x 128 max columns)
 const seq1Data = Array.from({length: 12}, () => new Array(128).fill(false));
@@ -87,6 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tempo & Sequence length dynamic updates
     document.getElementById('bpm-input').addEventListener('input', (e) => tempo = parseFloat(e.target.value));
     
+    document.getElementById('scale-select').addEventListener('change', (e) => {
+        if (scales[e.target.value]) {
+            currentScale = [...scales[e.target.value]];
+        }
+    });
+
     document.getElementById('seq1-length').addEventListener('change', (e) => {
         seq1Steps = parseInt(e.target.value) * 4;
         updateDisabledSteps('roll1', seq1Steps);
@@ -466,11 +480,11 @@ function nextNote() {
 
 function scheduleNote(step1, step2, time) {
     for (let row = 0; row < 12; row++) {
-        if (seq1Data[row][step1]) playSynthAndMIDI(1, scale[row], time);
+        if (seq1Data[row][step1]) playSynthAndMIDI(1, currentScale[row], time);
     }
     
     for (let row = 0; row < 12; row++) {
-        if (seq2Data[row][step2]) playSynthAndMIDI(2, scale[row], time);
+        if (seq2Data[row][step2]) playSynthAndMIDI(2, currentScale[row], time);
     }
 
     requestAnimationFrame(() => {
