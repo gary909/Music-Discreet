@@ -4,6 +4,9 @@ let midiAccess = null;
 let isPlaying = false;
 let masterGain, eqNodes = [], delay1, delay2, reverbNode, synth1ReverbGain, synth2ReverbGain;
 
+// Synth Channel Gain & Pan Nodes
+let synth1GainNode, synth2GainNode, synth1PannerNode, synth2PannerNode;
+
 // --- Sequencer State & Web Audio Timing Parameters ---
 let seq1Steps = 48; // Default 12 bars * 4 steps
 let seq2Steps = 56; // Default 14 bars * 4 steps
@@ -49,7 +52,7 @@ const eqPresets = [
 ];
 let currentEqPresetIndex = 0;
 
-// --- Delay FX Presets (Slapback to Long Ambient Repeats) ---
+// --- Delay FX Presets ---
 const delayPresets = [
     { name: "Slapback (0.15s)", time: 0.15, fback: 0.25, filter: 4000, mix: 0.4 },
     { name: "Short Doubler (0.35s)", time: 0.35, fback: 0.35, filter: 3500, mix: 0.35 },
@@ -60,8 +63,8 @@ const delayPresets = [
     { name: "Endless Vault (5.8s)", time: 5.80, fback: 0.85, filter: 1000, mix: 0.5 },
     { name: "Long Drone (6s)", time: 6.00, fback: 0.60, filter: 1500, mix: 0.2 }
 ];
-let delay1PresetIndex = 3; // Default: Medium Echo (3s)
-let delay2PresetIndex = 7; // Default: Long Drone (6s)
+let delay1PresetIndex = 3;
+let delay2PresetIndex = 7;
 
 // --- Lifecycle & Control Event Handlers ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -82,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Tempo & Sequence length dynamic updates
-    document.getElementById('bpm-input').addEventListener('input', (e) => tempo = e.target.value);
+    document.getElementById('bpm-input').addEventListener('input', (e) => tempo = parseFloat(e.target.value));
     document.getElementById('seq1-length').addEventListener('change', (e) => {
         seq1Steps = parseInt(e.target.value) * 4;
     });
@@ -99,22 +102,70 @@ async function initAudioAndMidi() {
     masterGain = audioCtx.createGain();
     masterGain.gain.value = 0.5;
 
+    // Synth Volume & Panning Channels
+    synth1GainNode = audioCtx.createGain();
+    synth2GainNode = audioCtx.createGain();
+    synth1GainNode.gain.value = parseFloat(document.getElementById('s1-vol').value);
+    synth2GainNode.gain.value = parseFloat(document.getElementById('s2-vol').value);
+
+    synth1PannerNode = audioCtx.createStereoPanner();
+    synth2PannerNode = audioCtx.createStereoPanner();
+    synth1PannerNode.pan.value = parseFloat(document.getElementById('s1-pan').value);
+    synth2PannerNode.pan.value = parseFloat(document.getElementById('s2-pan').value);
+
+    // Synth Signal Paths: Panner -> Gain -> Master
+    synth1PannerNode.connect(synth1GainNode);
+    synth1GainNode.connect(masterGain);
+
+    synth2PannerNode.connect(synth2GainNode);
+    synth2GainNode.connect(masterGain);
+
+    // Connect Vol & Pan Sliders to Nodes
+    document.getElementById('s1-vol').addEventListener('input', (e) => {
+        if (synth1GainNode) synth1GainNode.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+    });
+    document.getElementById('s2-vol').addEventListener('input', (e) => {
+        if (synth2GainNode) synth2GainNode.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+    });
+    document.getElementById('s1-pan').addEventListener('input', (e) => {
+        if (synth1PannerNode) synth1PannerNode.pan.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+    });
+    document.getElementById('s2-pan').addEventListener('input', (e) => {
+        if (synth2PannerNode) synth2PannerNode.pan.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+    });
+
     // Convolver Reverb Setup
     reverbNode = audioCtx.createConvolver();
-    reverbNode.buffer = createImpulseResponse(audioCtx, 3.0, 2.0);
+    reverbNode.buffer = createImpulseResponse(
+        audioCtx, 
+        parseFloat(document.getElementById('rev-time').value), 
+        parseFloat(document.getElementById('rev-decay').value)
+    );
 
     synth1ReverbGain = audioCtx.createGain();
     synth2ReverbGain = audioCtx.createGain();
 
-    synth1ReverbGain.gain.value = parseFloat(document.getElementById('s1-rev').value);
-    synth2ReverbGain.gain.value = parseFloat(document.getElementById('s2-rev').value);
+    synth1ReverbGain.gain.value = parseFloat(document.getElementById('s1-rev-master').value);
+    synth2ReverbGain.gain.value = parseFloat(document.getElementById('s2-rev-master').value);
 
-    document.getElementById('s1-rev').addEventListener('input', (e) => {
-        if (synth1ReverbGain) synth1ReverbGain.gain.setValueAtTime(e.target.value, audioCtx.currentTime);
-    });
-    document.getElementById('s2-rev').addEventListener('input', (e) => {
-        if (synth2ReverbGain) synth2ReverbGain.gain.setValueAtTime(e.target.value, audioCtx.currentTime);
-    });
+    // Master Reverb Send Handlers
+    const syncReverbInput = (synthNum, val) => {
+        const revGainNode = synthNum === 1 ? synth1ReverbGain : synth2ReverbGain;
+        if (revGainNode) revGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
+        document.getElementById(`s${synthNum}-rev-master`).value = val;
+    };
+
+    document.getElementById('s1-rev-master').addEventListener('input', (e) => syncReverbInput(1, parseFloat(e.target.value)));
+    document.getElementById('s2-rev-master').addEventListener('input', (e) => syncReverbInput(2, parseFloat(e.target.value)));
+
+    // Dynamic Impulse Response Regeneration on Time/Decay change
+    const updateReverbBuffer = () => {
+        const time = parseFloat(document.getElementById('rev-time').value);
+        const decay = parseFloat(document.getElementById('rev-decay').value);
+        reverbNode.buffer = createImpulseResponse(audioCtx, time, decay);
+    };
+    document.getElementById('rev-time').addEventListener('change', updateReverbBuffer);
+    document.getElementById('rev-decay').addEventListener('change', updateReverbBuffer);
 
     synth1ReverbGain.connect(reverbNode);
     synth2ReverbGain.connect(reverbNode);
@@ -142,7 +193,7 @@ async function initAudioAndMidi() {
         }
     });
 
-    // Serial Delay Modules (EQ Output -> Delay 1 -> Delay 2 -> Destination)
+    // Serial Delay Modules
     const d1State = delayPresets[delay1PresetIndex];
     const d2State = delayPresets[delay2PresetIndex];
 
@@ -194,7 +245,6 @@ function createDelayEffect(inputNode, time, feedback, cutoff, mix) {
     dryGain.gain.value = 1 - mix;
     wetGain.gain.value = mix;
 
-    // Routing: Input splits into Dry Output and Wet Delay Feedback Loop
     inputNode.connect(dryGain);
     dryGain.connect(outputNode);
 
@@ -219,25 +269,17 @@ function createDelayEffect(inputNode, time, feedback, cutoff, mix) {
     };
 }
 
-// Bind UI Input Sliders to a Delay Effect Object
+// Bind UI Input Sliders to Delay Effect
 function bindDelayControls(containerId, delayEffect) {
     const container = document.getElementById(containerId);
     
-    container.querySelector('.delay-time').addEventListener('input', (e) => {
-        delayEffect.setTime(parseFloat(e.target.value));
-    });
-    container.querySelector('.delay-fback').addEventListener('input', (e) => {
-        delayEffect.setFeedback(parseFloat(e.target.value));
-    });
-    container.querySelector('.delay-filter').addEventListener('input', (e) => {
-        delayEffect.setFilter(parseFloat(e.target.value));
-    });
-    container.querySelector('.delay-mix').addEventListener('input', (e) => {
-        delayEffect.setMix(parseFloat(e.target.value));
-    });
+    container.querySelector('.delay-time').addEventListener('input', (e) => delayEffect.setTime(parseFloat(e.target.value)));
+    container.querySelector('.delay-fback').addEventListener('input', (e) => delayEffect.setFeedback(parseFloat(e.target.value)));
+    container.querySelector('.delay-filter').addEventListener('input', (e) => delayEffect.setFilter(parseFloat(e.target.value)));
+    container.querySelector('.delay-mix').addEventListener('input', (e) => delayEffect.setMix(parseFloat(e.target.value)));
 }
 
-// Apply selected Synth preset values to UI controls & parameters
+// Apply selected Synth preset values
 function applySynthPreset(synthNum, index) {
     const preset = synthPresets[index];
     const nameEl = document.getElementById(`synth${synthNum}-preset-name`);
@@ -255,18 +297,15 @@ function applySynthPreset(synthNum, index) {
     document.getElementById(`${prefix}-res`).value = preset.res;
     document.getElementById(`${prefix}-trill`).value = preset.trill;
     document.getElementById(`${prefix}-trill-key`).checked = preset.trillKey;
-    document.getElementById(`${prefix}-rev`).value = preset.rev;
+    document.getElementById(`${prefix}-rev-master`).value = preset.rev;
 
-    // Sync Web Audio Reverb Gain Node if active
     if (audioCtx) {
         const revGainNode = synthNum === 1 ? synth1ReverbGain : synth2ReverbGain;
-        if (revGainNode) {
-            revGainNode.gain.setValueAtTime(preset.rev, audioCtx.currentTime);
-        }
+        if (revGainNode) revGainNode.gain.setValueAtTime(preset.rev, audioCtx.currentTime);
     }
 }
 
-// Apply selected EQ preset values to sliders & audio nodes
+// Apply selected EQ preset values
 function applyEqPreset(index) {
     currentEqPresetIndex = index;
     const preset = eqPresets[index];
@@ -287,7 +326,7 @@ function applyEqPreset(index) {
     });
 }
 
-// Apply selected Delay preset values to UI sliders & audio nodes
+// Apply selected Delay preset values
 function applyDelayPreset(delayNum, index) {
     const preset = delayPresets[index];
     const container = document.getElementById(`delay${delayNum}`);
@@ -319,7 +358,6 @@ function initUI() {
     createPianoRoll('roll1', seq1Data, 64);
     createPianoRoll('roll2', seq2Data, 64);
 
-    // Build vertical EQ Sliders dynamically
     const eqContainer = document.getElementById('eq-sliders');
     for (let i = 0; i < 10; i++) {
         const wrap = document.createElement('div');
@@ -328,58 +366,44 @@ function initUI() {
         eqContainer.appendChild(wrap);
     }
 
-    // Synth 1 Preset Selector Listeners
+    // Synth Preset Listeners
     document.getElementById('synth1-preset-prev').addEventListener('click', () => {
-        const newIndex = (synth1PresetIndex - 1 + synthPresets.length) % synthPresets.length;
-        applySynthPreset(1, newIndex);
+        applySynthPreset(1, (synth1PresetIndex - 1 + synthPresets.length) % synthPresets.length);
     });
     document.getElementById('synth1-preset-next').addEventListener('click', () => {
-        const newIndex = (synth1PresetIndex + 1) % synthPresets.length;
-        applySynthPreset(1, newIndex);
+        applySynthPreset(1, (synth1PresetIndex + 1) % synthPresets.length);
     });
-
-    // Synth 2 Preset Selector Listeners
     document.getElementById('synth2-preset-prev').addEventListener('click', () => {
-        const newIndex = (synth2PresetIndex - 1 + synthPresets.length) % synthPresets.length;
-        applySynthPreset(2, newIndex);
+        applySynthPreset(2, (synth2PresetIndex - 1 + synthPresets.length) % synthPresets.length);
     });
     document.getElementById('synth2-preset-next').addEventListener('click', () => {
-        const newIndex = (synth2PresetIndex + 1) % synthPresets.length;
-        applySynthPreset(2, newIndex);
+        applySynthPreset(2, (synth2PresetIndex + 1) % synthPresets.length);
     });
 
     // EQ Selector Listeners
     document.getElementById('eq-preset-prev').addEventListener('click', () => {
-        const newIndex = (currentEqPresetIndex - 1 + eqPresets.length) % eqPresets.length;
-        applyEqPreset(newIndex);
+        applyEqPreset((currentEqPresetIndex - 1 + eqPresets.length) % eqPresets.length);
     });
     document.getElementById('eq-preset-next').addEventListener('click', () => {
-        const newIndex = (currentEqPresetIndex + 1) % eqPresets.length;
-        applyEqPreset(newIndex);
+        applyEqPreset((currentEqPresetIndex + 1) % eqPresets.length);
     });
 
-    // Delay 1 Selector Listeners
+    // Delay Selector Listeners
     document.getElementById('delay1-preset-prev').addEventListener('click', () => {
-        const newIndex = (delay1PresetIndex - 1 + delayPresets.length) % delayPresets.length;
-        applyDelayPreset(1, newIndex);
+        applyDelayPreset(1, (delay1PresetIndex - 1 + delayPresets.length) % delayPresets.length);
     });
     document.getElementById('delay1-preset-next').addEventListener('click', () => {
-        const newIndex = (delay1PresetIndex + 1) % delayPresets.length;
-        applyDelayPreset(1, newIndex);
+        applyDelayPreset(1, (delay1PresetIndex + 1) % delayPresets.length);
     });
-
-    // Delay 2 Selector Listeners
     document.getElementById('delay2-preset-prev').addEventListener('click', () => {
-        const newIndex = (delay2PresetIndex - 1 + delayPresets.length) % delayPresets.length;
-        applyDelayPreset(2, newIndex);
+        applyDelayPreset(2, (delay2PresetIndex - 1 + delayPresets.length) % delayPresets.length);
     });
     document.getElementById('delay2-preset-next').addEventListener('click', () => {
-        const newIndex = (delay2PresetIndex + 1) % delayPresets.length;
-        applyDelayPreset(2, newIndex);
+        applyDelayPreset(2, (delay2PresetIndex + 1) % delayPresets.length);
     });
 }
 
-// Render Interactive Grid Cells for Sequencers
+// Render Interactive Grid Cells
 function createPianoRoll(containerId, dataArray, visualSteps) {
     const container = document.getElementById(containerId);
     for (let row = 0; row < 12; row++) {
@@ -399,19 +423,14 @@ function createPianoRoll(containerId, dataArray, visualSteps) {
     }
 }
 
-// Advance Beat Counter in Web Audio Time Space
 function nextNote() {
     const secondsPerBeat = 60.0 / tempo;
     nextNoteTime += secondsPerBeat;
     
-    currentStep1++;
-    if (currentStep1 >= seq1Steps) currentStep1 = 0;
-    
-    currentStep2++;
-    if (currentStep2 >= seq2Steps) currentStep2 = 0;
+    currentStep1 = (currentStep1 + 1) % seq1Steps;
+    currentStep2 = (currentStep2 + 1) % seq2Steps;
 }
 
-// Evaluate Grid State & Schedule Audio Synthesizer Triggers
 function scheduleNote(step1, step2, time) {
     for (let row = 0; row < 12; row++) {
         if (seq1Data[row][step1]) playSynthAndMIDI(1, scale[row], time);
@@ -421,7 +440,6 @@ function scheduleNote(step1, step2, time) {
         if (seq2Data[row][step2]) playSynthAndMIDI(2, scale[row], time);
     }
 
-    // Update Visual Sequence Head Position
     requestAnimationFrame(() => {
         document.querySelectorAll('.playing').forEach(el => el.classList.remove('playing'));
         for (let r = 0; r < 12; r++) {
@@ -434,7 +452,6 @@ function scheduleNote(step1, step2, time) {
     });
 }
 
-// Lookahead Timing Loop for Precise Audio Context Scheduling
 function scheduler() {
     while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
         scheduleNote(currentStep1, currentStep2, nextNoteTime);
@@ -457,12 +474,10 @@ function playSynthAndMIDI(synthNum, midiNote, time) {
     const vca = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
     
-    // Pitch & Oscillator Setup
     const baseFreq = 440 * Math.pow(2, (midiNote - 69) / 12);
     osc.type = wave;
     osc.frequency.setValueAtTime(baseFreq, time);
 
-    // LFO Trill Modulation Engine
     if (trill > 0) {
         const lfo = audioCtx.createOscillator();
         const lfoGain = audioCtx.createGain();
@@ -482,20 +497,20 @@ function playSynthAndMIDI(synthNum, midiNote, time) {
         lfo.stop(time + atk + dec);
     }
     
-    // Filter Shaping
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(cut, time);
     filter.Q.setValueAtTime(res, time); 
     
-    // Envelope (VCA) Target Curves
     vca.gain.setValueAtTime(0, time);
     vca.gain.linearRampToValueAtTime(0.3, time + atk);
     vca.gain.setTargetAtTime(0, time + atk, dec / 3);
 
-    // Signal Routing
+    // Route signal through Pan -> Volume Gain -> Master
+    const targetPanner = synthNum === 1 ? synth1PannerNode : synth2PannerNode;
+    
     osc.connect(filter);
     filter.connect(vca);
-    vca.connect(masterGain);
+    if (targetPanner) vca.connect(targetPanner);
 
     if (synthNum === 1 && synth1ReverbGain) vca.connect(synth1ReverbGain);
     if (synthNum === 2 && synth2ReverbGain) vca.connect(synth2ReverbGain);
@@ -503,7 +518,6 @@ function playSynthAndMIDI(synthNum, midiNote, time) {
     osc.start(time);
     osc.stop(time + atk + dec);
 
-    // Transmit Web MIDI Messages if active
     if (midiAccess) {
         const midiChannel = parseInt(document.getElementById(`s${synthNum}-midi`).value) - 1;
         const noteOnMessage = [0x90 + midiChannel, midiNote, 0x7f]; 

@@ -64,7 +64,12 @@ h3 {
 .control label { margin-bottom: 5px; font-weight: bold; }
 
 /* Sequencer & Piano Roll Grids */
-.sequencer-panel { flex-grow: 1; }
+.sequencer-panel { 
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; 
+}
+
 .seq-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 
 .piano-roll {
@@ -74,7 +79,8 @@ h3 {
     background: #ccc;
     border: 1px solid #999;
     overflow-x: auto;
-    height: 200px;
+    flex: 1;
+    min-height: 160px;
 }
 
 .pr-row { display: flex; gap: 1px; }
@@ -102,7 +108,7 @@ input[type=range][orient=vertical] {
     padding: 0 5px;
 }
 
-/* Preset Navigation Selector Box (Shared across EQ & Delays) */
+/* Preset Navigation Selector Box */
 .preset-container {
     display: flex;
     align-items: center;
@@ -134,18 +140,22 @@ input[type=range][orient=vertical] {
     letter-spacing: 0.5px;
 }
 
-/* Delay Signal Flow Direction Indicator */
+/* Flow Arrows */
 .arrow-down { font-size: 24px; color: #111; margin: 10px 0; }
 
-/* Transport Control Bar */
-.transport {
+/* Transport & Synth Mix Panel */
+.transport-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.transport-main {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #fff;
-    border: var(--panel-border);
-    border-radius: var(--panel-radius);
-    padding: 15px 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #ccc;
 }
 
 #play-btn {
@@ -158,3 +168,27 @@ input[type=range][orient=vertical] {
     font-weight: bold;
 }
 #play-btn:active { background: #333; }
+
+.synth-mix-controls {
+    display: flex;
+    justify-content: space-around;
+    gap: 15px;
+}
+
+.mix-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mix-group h4 {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #333;
+}
+
+.control-row {
+    display: flex;
+    gap: 12px;
+}

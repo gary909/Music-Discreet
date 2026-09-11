@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- LEFT COLUMN: Synthesizers, Sequencers, and Transport Controls -->
+        <!-- LEFT COLUMN: Synthesizers and Sequencers -->
         <div class="left-column">
             <div class="synths-row">
                 <!-- Synth 1 Module -->
@@ -22,7 +22,6 @@
                         <div class="control"><label>Res</label><input type="range" id="s1-res" min="0" max="20" value="2"></div>
                         <div class="control"><label>Trill</label><input type="range" id="s1-trill" min="0" max="100" value="0"></div>
                         <div class="control"><label>Trill Key</label><input type="checkbox" id="s1-trill-key"></div>
-                        <div class="control"><label>Reverb</label><input type="range" id="s1-rev" min="0" max="1" step="0.01" value="0.3"></div>
                         <div class="control"><label>MIDI Ch</label><select id="s1-midi"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
                     </div>
                     <!-- Synth 1 Preset Selector UI -->
@@ -44,7 +43,6 @@
                         <div class="control"><label>Res</label><input type="range" id="s2-res" min="0" max="20" value="1"></div>
                         <div class="control"><label>Trill</label><input type="range" id="s2-trill" min="0" max="100" value="0"></div>
                         <div class="control"><label>Trill Key</label><input type="checkbox" id="s2-trill-key"></div>
-                        <div class="control"><label>Reverb</label><input type="range" id="s2-rev" min="0" max="1" step="0.01" value="0.4"></div>
                         <div class="control"><label>MIDI Ch</label><select id="s2-midi"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
                     </div>
                     <!-- Synth 2 Preset Selector UI -->
@@ -70,17 +68,9 @@
                 </div>
                 <div class="piano-roll" id="roll2"></div>
             </div>
-            
-            <!-- Global Transport Controls -->
-            <div class="transport">
-                <button id="play-btn">Play / Pause</button>
-                <div class="tempo-control">
-                    <label>Tempo (BPM): <input type="number" id="bpm-input" value="60"></label>
-                </div>
-            </div>
         </div>
 
-        <!-- RIGHT COLUMN: Signal Processing Chain (EQ & Serial Delays) -->
+        <!-- RIGHT COLUMN: Signal Processing Chain & Transport Controls -->
         <div class="right-column">
             <!-- 10-Band EQ Unit -->
             <div class="panel eq-panel">
@@ -131,6 +121,49 @@
                     <button id="delay2-preset-prev" class="preset-btn">&lt;</button>
                     <span id="delay2-preset-name" class="preset-name">Long Drone (6s)</span>
                     <button id="delay2-preset-next" class="preset-btn">&gt;</button>
+                </div>
+            </div>
+
+            <div class="arrow-down">▼</div>
+
+            <!-- Master Reverb Module -->
+            <div class="panel reverb-panel" id="reverb-module">
+                <h3>Master Reverb</h3>
+                <div class="controls-grid single-row">
+                    <div class="control"><label>Time (s)</label><input type="range" id="rev-time" min="0.5" max="8.0" step="0.1" value="3.0"></div>
+                    <div class="control"><label>Decay</label><input type="range" id="rev-decay" min="0.5" max="5.0" step="0.1" value="2.0"></div>
+                    <div class="control"><label>S1 Send</label><input type="range" id="s1-rev-master" min="0" max="1" step="0.01" value="0.3"></div>
+                    <div class="control"><label>S2 Send</label><input type="range" id="s2-rev-master" min="0" max="1" step="0.01" value="0.4"></div>
+                </div>
+            </div>
+
+            <div class="arrow-down">▼</div>
+
+            <!-- Transport & Synth Mix Panel -->
+            <div class="panel transport-panel">
+                <h3>Transport & Mix</h3>
+                <div class="transport-main">
+                    <button id="play-btn">Play / Pause</button>
+                    <div class="tempo-control">
+                        <label>Tempo (BPM): <input type="number" id="bpm-input" value="60"></label>
+                    </div>
+                </div>
+                
+                <div class="synth-mix-controls">
+                    <div class="mix-group">
+                        <h4>Synth 1</h4>
+                        <div class="control-row">
+                            <div class="control"><label>Vol</label><input type="range" id="s1-vol" min="0" max="1" step="0.01" value="0.8"></div>
+                            <div class="control"><label>Pan</label><input type="range" id="s1-pan" min="-1" max="1" step="0.01" value="0"></div>
+                        </div>
+                    </div>
+                    <div class="mix-group">
+                        <h4>Synth 2</h4>
+                        <div class="control-row">
+                            <div class="control"><label>Vol</label><input type="range" id="s2-vol" min="0" max="1" step="0.01" value="0.8"></div>
+                            <div class="control"><label>Pan</label><input type="range" id="s2-pan" min="-1" max="1" step="0.01" value="0"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
