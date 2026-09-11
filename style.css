@@ -83,6 +83,7 @@ h3 { margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 
 input[type=range][orient=vertical] {
     writing-mode: bt-lr; /* IE */
     -webkit-appearance: slider-vertical; /* WebKit */
+    appearance: slider-vertical; /* Standard */
     width: 8px;
     height: 120px;
     padding: 0 5px;
