@@ -8,10 +8,10 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- LEFT COLUMN: Synths & Sequencers -->
+        <!-- LEFT COLUMN: Synthesizers, Sequencers, and Transport Controls -->
         <div class="left-column">
             <div class="synths-row">
-                <!-- Synth 1 -->
+                <!-- Synth 1 Module -->
                 <div class="panel synth-panel" id="synth1">
                     <h3>Synth 1</h3>
                     <div class="controls-grid">
@@ -27,7 +27,7 @@
                     </div>
                 </div>
 
-                <!-- Synth 2 -->
+                <!-- Synth 2 Module -->
                 <div class="panel synth-panel" id="synth2">
                     <h3>Synth 2</h3>
                     <div class="controls-grid">
@@ -44,7 +44,7 @@
                 </div>
             </div>
 
-            <!-- Sequencers Area -->
+            <!-- Phasing Sequencers Area -->
             <div class="panel sequencer-panel">
                 <div class="seq-header">
                     <h3>Sequencer 1 (Phasing Loop A)</h3>
@@ -59,7 +59,7 @@
                 <div class="piano-roll" id="roll2"></div>
             </div>
             
-            <!-- Transport -->
+            <!-- Global Transport Controls -->
             <div class="transport">
                 <button id="play-btn">Play / Pause</button>
                 <div class="tempo-control">
@@ -68,39 +68,57 @@
             </div>
         </div>
 
-        <!-- RIGHT COLUMN: EQ & FX Chain -->
+        <!-- RIGHT COLUMN: Signal Processing Chain (EQ & Serial Delays) -->
         <div class="right-column">
+            <!-- 10-Band EQ Unit -->
             <div class="panel eq-panel">
+                <h3>10-Band EQ</h3>
                 <div class="eq-sliders" id="eq-sliders">
-                    <!-- Sliders injected via JS -->
+                    <!-- Vertical Sliders dynamically injected via JS -->
                 </div>
-                <!-- EQ Preset Selector Box -->
-                <div class="eq-preset-container">
+                <!-- EQ Preset Selector UI -->
+                <div class="preset-container">
                     <button id="eq-preset-prev" class="preset-btn">&lt;</button>
-                    <span id="eq-preset-name">Flat</span>
+                    <span id="eq-preset-name" class="preset-name">Flat</span>
                     <button id="eq-preset-next" class="preset-btn">&gt;</button>
                 </div>
             </div>
             
             <div class="arrow-down">▼</div>
 
+            <!-- Delay Module 1 -->
             <div class="panel delay-panel" id="delay1">
+                <h3>Delay 1</h3>
                 <div class="controls-grid single-row">
                     <div class="control knob-red"><label>Time</label><input type="range" class="delay-time" min="0" max="6" step="0.01" value="3.0"></div>
                     <div class="control knob-white"><label>Fback</label><input type="range" class="delay-fback" min="0" max="0.95" step="0.01" value="0.4"></div>
                     <div class="control knob-green"><label>Filter</label><input type="range" class="delay-filter" min="20" max="10000" value="2000"></div>
                     <div class="control knob-blue"><label>Mix</label><input type="range" class="delay-mix" min="0" max="1" step="0.01" value="0.3"></div>
                 </div>
+                <!-- Delay 1 Preset Selector UI -->
+                <div class="preset-container">
+                    <button id="delay1-preset-prev" class="preset-btn">&lt;</button>
+                    <span id="delay1-preset-name" class="preset-name">Medium Echo (3s)</span>
+                    <button id="delay1-preset-next" class="preset-btn">&gt;</button>
+                </div>
             </div>
 
             <div class="arrow-down">▼</div>
 
+            <!-- Delay Module 2 -->
             <div class="panel delay-panel" id="delay2">
+                <h3>Delay 2</h3>
                 <div class="controls-grid single-row">
                     <div class="control knob-red"><label>Time</label><input type="range" class="delay-time" min="0" max="6" step="0.01" value="6.0"></div>
                     <div class="control knob-white"><label>Fback</label><input type="range" class="delay-fback" min="0" max="0.95" step="0.01" value="0.6"></div>
                     <div class="control knob-green"><label>Filter</label><input type="range" class="delay-filter" min="20" max="10000" value="1500"></div>
                     <div class="control knob-blue"><label>Mix</label><input type="range" class="delay-mix" min="0" max="1" step="0.01" value="0.2"></div>
+                </div>
+                <!-- Delay 2 Preset Selector UI -->
+                <div class="preset-container">
+                    <button id="delay2-preset-prev" class="preset-btn">&lt;</button>
+                    <span id="delay2-preset-name" class="preset-name">Long Drone (6s)</span>
+                    <button id="delay2-preset-next" class="preset-btn">&gt;</button>
                 </div>
             </div>
         </div>
