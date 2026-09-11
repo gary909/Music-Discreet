@@ -279,13 +279,39 @@ function playSynthAndMIDI(synthNum, midiNote, time) {
     const dec = parseFloat(document.getElementById(`s${synthNum}-dec`).value);
     const cut = parseFloat(document.getElementById(`s${synthNum}-cut`).value);
     const res = parseFloat(document.getElementById(`s${synthNum}-res`).value);
+    const trill = parseFloat(document.getElementById(`s${synthNum}-trill`).value);
+    const trillKey = document.getElementById(`s${synthNum}-trill-key`).checked;
     
     const osc = audioCtx.createOscillator();
     const vca = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
     
+    const baseFreq = 440 * Math.pow(2, (midiNote - 69) / 12); // MIDI to Hz
     osc.type = wave;
-    osc.frequency.value = 440 * Math.pow(2, (midiNote - 69) / 12); // MIDI to Hz
+    osc.frequency.setValueAtTime(baseFreq, time);
+
+    // Trill modulation implementation (LFO square pitch modulation)
+    if (trill > 0) {
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        
+        let rate = 6 + (trill / 10); // Base trill speed (6 Hz - 16 Hz)
+        if (trillKey) {
+            rate *= (midiNote / 60); // Trill key follow scales speed with note pitch
+        }
+        
+        lfo.type = 'square';
+        lfo.frequency.setValueAtTime(rate, time);
+        
+        // Depth scales pitch up to 2 semitones
+        const semitoneOffset = (trill / 100) * 2;
+        const freqOffset = baseFreq * (Math.pow(2, semitoneOffset / 12) - 1);
+        lfoGain.gain.setValueAtTime(freqOffset, time);
+        
+        lfo.connect(osc.frequency);
+        lfo.start(time);
+        lfo.stop(time + atk + dec);
+    }
     
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(cut, time);
