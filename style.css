@@ -178,6 +178,7 @@ input[type=range][orient=vertical] {
     display: flex;
     gap: 12px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 #play-btn {

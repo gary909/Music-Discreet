@@ -18,16 +18,25 @@ let scheduleAheadTime = 0.1; // Audio scheduling window ahead (s)
 let tempo = 60.0;
 let timerID;
 
-// Basic Pentatonic Scale (MIDI Pitch Values) for generative phase interplay
-const scales = {
-    pentatonic: [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86].reverse(),
-    pentatonicMinor: [60, 63, 65, 67, 70, 72, 75, 77, 79, 82, 84, 87].reverse(),
-    major: [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79].reverse(),
-    minor: [60, 62, 63, 65, 67, 68, 70, 72, 74, 75, 77, 79].reverse(),
-    dorian: [60, 62, 63, 65, 67, 69, 70, 72, 74, 75, 77, 79].reverse(),
-    chromatic: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71].reverse()
+// Scale Definitions & Root Transposition (MIDI Pitch Values)
+const scaleIntervals = {
+    pentatonic: [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26],
+    pentatonicMinor: [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27],
+    major: [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19],
+    minor: [0, 2, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19],
+    dorian: [0, 2, 3, 5, 7, 9, 10, 12, 14, 15, 17, 19],
+    chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 };
-let currentScale = [...scales.pentatonic];
+let currentRoot = 0; // C (0 semitones offset from C4 = 60)
+let currentScaleType = 'pentatonic';
+let currentScale = [];
+
+function updateScale() {
+    const intervals = scaleIntervals[currentScaleType] || scaleIntervals.pentatonic;
+    const baseNote = 60 + currentRoot;
+    currentScale = intervals.map(interval => baseNote + interval).reverse();
+}
+updateScale();
 
 // Sequencer Grid State Storage (12 rows x 128 max columns)
 const seq1Data = Array.from({length: 12}, () => new Array(128).fill(false));
@@ -95,10 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tempo & Sequence length dynamic updates
     document.getElementById('bpm-input').addEventListener('input', (e) => tempo = parseFloat(e.target.value));
     
+    document.getElementById('root-key-select').addEventListener('change', (e) => {
+        currentRoot = parseInt(e.target.value, 10);
+        updateScale();
+    });
+
     document.getElementById('scale-select').addEventListener('change', (e) => {
-        if (scales[e.target.value]) {
-            currentScale = [...scales[e.target.value]];
-        }
+        currentScaleType = e.target.value;
+        updateScale();
     });
 
     document.getElementById('seq1-length').addEventListener('change', (e) => {
