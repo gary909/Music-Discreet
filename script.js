@@ -22,6 +22,20 @@ const scale = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86].reverse();
 const seq1Data = Array.from({length: 12}, () => new Array(128).fill(false));
 const seq2Data = Array.from({length: 12}, () => new Array(128).fill(false));
 
+// --- Synthesizer Sound Presets ---
+const synthPresets = [
+    { name: "Gentle Sine", wave: "sine", atk: 0.5, dec: 2.0, cut: 1000, res: 2, trill: 0, trillKey: false, rev: 0.3 },
+    { name: "Deep Warmth", wave: "sine", atk: 1.0, dec: 3.0, cut: 800, res: 1, trill: 0, trillKey: false, rev: 0.4 },
+    { name: "Bright Saw Lead", wave: "sawtooth", atk: 0.05, dec: 1.5, cut: 3500, res: 5, trill: 0, trillKey: false, rev: 0.25 },
+    { name: "Acid Filter Sweeper", wave: "sawtooth", atk: 0.01, dec: 0.8, cut: 1200, res: 15, trill: 0, trillKey: false, rev: 0.2 },
+    { name: "Ambient Soft Tri", wave: "triangle", atk: 0.8, dec: 2.5, cut: 1500, res: 2, trill: 0, trillKey: false, rev: 0.5 },
+    { name: "Hollow Square Pad", wave: "square", atk: 0.1, dec: 1.8, cut: 2000, res: 4, trill: 0, trillKey: false, rev: 0.35 },
+    { name: "Trill Flute Solo", wave: "triangle", atk: 0.2, dec: 2.2, cut: 4000, res: 3, trill: 25, trillKey: true, rev: 0.45 },
+    { name: "Shimmer Pulse Drone", wave: "square", atk: 0.4, dec: 3.0, cut: 5000, res: 8, trill: 40, trillKey: false, rev: 0.6 }
+];
+let synth1PresetIndex = 0; // Default: Gentle Sine
+let synth2PresetIndex = 1; // Default: Deep Warmth
+
 // --- 10-Band Graphic EQ Presets ---
 const eqPresets = [
     { name: "Flat", values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
@@ -223,6 +237,35 @@ function bindDelayControls(containerId, delayEffect) {
     });
 }
 
+// Apply selected Synth preset values to UI controls & parameters
+function applySynthPreset(synthNum, index) {
+    const preset = synthPresets[index];
+    const nameEl = document.getElementById(`synth${synthNum}-preset-name`);
+
+    if (synthNum === 1) synth1PresetIndex = index;
+    if (synthNum === 2) synth2PresetIndex = index;
+
+    if (nameEl) nameEl.textContent = preset.name;
+
+    const prefix = `s${synthNum}`;
+    document.getElementById(`${prefix}-wave`).value = preset.wave;
+    document.getElementById(`${prefix}-atk`).value = preset.atk;
+    document.getElementById(`${prefix}-dec`).value = preset.dec;
+    document.getElementById(`${prefix}-cut`).value = preset.cut;
+    document.getElementById(`${prefix}-res`).value = preset.res;
+    document.getElementById(`${prefix}-trill`).value = preset.trill;
+    document.getElementById(`${prefix}-trill-key`).checked = preset.trillKey;
+    document.getElementById(`${prefix}-rev`).value = preset.rev;
+
+    // Sync Web Audio Reverb Gain Node if active
+    if (audioCtx) {
+        const revGainNode = synthNum === 1 ? synth1ReverbGain : synth2ReverbGain;
+        if (revGainNode) {
+            revGainNode.gain.setValueAtTime(preset.rev, audioCtx.currentTime);
+        }
+    }
+}
+
 // Apply selected EQ preset values to sliders & audio nodes
 function applyEqPreset(index) {
     currentEqPresetIndex = index;
@@ -284,6 +327,26 @@ function initUI() {
         wrap.innerHTML = `<input type="range" orient="vertical" id="eq-band-${i}" min="-12" max="12" step="0.1" value="0">`;
         eqContainer.appendChild(wrap);
     }
+
+    // Synth 1 Preset Selector Listeners
+    document.getElementById('synth1-preset-prev').addEventListener('click', () => {
+        const newIndex = (synth1PresetIndex - 1 + synthPresets.length) % synthPresets.length;
+        applySynthPreset(1, newIndex);
+    });
+    document.getElementById('synth1-preset-next').addEventListener('click', () => {
+        const newIndex = (synth1PresetIndex + 1) % synthPresets.length;
+        applySynthPreset(1, newIndex);
+    });
+
+    // Synth 2 Preset Selector Listeners
+    document.getElementById('synth2-preset-prev').addEventListener('click', () => {
+        const newIndex = (synth2PresetIndex - 1 + synthPresets.length) % synthPresets.length;
+        applySynthPreset(2, newIndex);
+    });
+    document.getElementById('synth2-preset-next').addEventListener('click', () => {
+        const newIndex = (synth2PresetIndex + 1) % synthPresets.length;
+        applySynthPreset(2, newIndex);
+    });
 
     // EQ Selector Listeners
     document.getElementById('eq-preset-prev').addEventListener('click', () => {
