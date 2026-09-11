@@ -88,6 +88,38 @@ input[type=range][orient=vertical] {
     padding: 0 5px;
 }
 
+/* EQ Preset Box Styling */
+.eq-preset-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding: 6px 12px;
+    background: #f8f8f8;
+    border: 1px solid #111;
+    border-radius: 6px;
+}
+
+.preset-btn {
+    background: #111;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.preset-btn:hover { background: #333; }
+
+#eq-preset-name {
+    font-size: 12px;
+    font-weight: bold;
+    color: #111;
+    letter-spacing: 0.5px;
+}
+
 /* Delay Flow Arrows */
 .arrow-down { font-size: 24px; color: #111; margin: 10px 0; }
 

@@ -24,6 +24,19 @@ const scale = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86].reverse();
 const seq1Data = Array.from({length: 12}, () => new Array(128).fill(false));
 const seq2Data = Array.from({length: 12}, () => new Array(128).fill(false));
 
+// 10-Band EQ Presets
+const eqPresets = [
+    { name: "Flat", values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    { name: "Bass Boost", values: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0] },
+    { name: "Treble Boost", values: [0, 0, 0, 0, 0, 1, 3, 5, 6, 7] },
+    { name: "Mid Scoop", values: [3, 2, 0, -4, -5, -4, 0, 2, 3, 3] },
+    { name: "Warm Ambient", values: [4, 3, 2, 1, 0, -1, -2, -3, -4, -5] },
+    { name: "Bright / Air", values: [-4, -3, -2, -1, 0, 2, 4, 6, 7, 8] },
+    { name: "Club / Loudness", values: [5, 4, 2, 0, -2, 0, 2, 4, 5, 4] },
+    { name: "Low-Pass Felt", values: [2, 2, 1, 0, -2, -5, -8, -10, -12, -12] }
+];
+let currentPresetIndex = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     initUI();
     
@@ -88,15 +101,18 @@ async function initAudioAndMidi() {
         filter.type = "peaking";
         filter.frequency.value = freq;
         filter.Q.value = 1.41;
-        filter.gain.value = 0;
+
+        // Initialize node gain from slider UI value
+        const slider = document.getElementById(`eq-band-${i}`);
+        filter.gain.value = slider ? parseFloat(slider.value) : 0;
+
         lastNode.connect(filter);
         lastNode = filter;
         eqNodes.push(filter);
 
         // Link EQ UI
-        const slider = document.getElementById(`eq-band-${i}`);
         if(slider) {
-            slider.addEventListener('input', (e) => filter.gain.value = e.target.value);
+            slider.addEventListener('input', (e) => filter.gain.value = parseFloat(e.target.value));
         }
     });
 
@@ -193,6 +209,27 @@ function bindDelayControls(containerId, delayEffect) {
     });
 }
 
+// Applies preset gain values to sliders and Web Audio nodes
+function applyEqPreset(index) {
+    currentPresetIndex = index;
+    const preset = eqPresets[index];
+    const nameEl = document.getElementById('eq-preset-name');
+    if (nameEl) nameEl.textContent = preset.name;
+
+    preset.values.forEach((val, i) => {
+        const slider = document.getElementById(`eq-band-${i}`);
+        if (slider) slider.value = val;
+        
+        if (eqNodes[i]) {
+            if (audioCtx) {
+                eqNodes[i].gain.setValueAtTime(val, audioCtx.currentTime);
+            } else {
+                eqNodes[i].gain.value = val;
+            }
+        }
+    });
+}
+
 // Generates the visual piano roll grid
 function initUI() {
     createPianoRoll('roll1', seq1Data, 64); // Render 64 steps visually
@@ -206,6 +243,16 @@ function initUI() {
         wrap.innerHTML = `<input type="range" orient="vertical" id="eq-band-${i}" min="-12" max="12" step="0.1" value="0">`;
         eqContainer.appendChild(wrap);
     }
+
+    // Bind EQ preset buttons
+    document.getElementById('eq-preset-prev').addEventListener('click', () => {
+        const newIndex = (currentPresetIndex - 1 + eqPresets.length) % eqPresets.length;
+        applyEqPreset(newIndex);
+    });
+    document.getElementById('eq-preset-next').addEventListener('click', () => {
+        const newIndex = (currentPresetIndex + 1) % eqPresets.length;
+        applyEqPreset(newIndex);
+    });
 }
 
 function createPianoRoll(containerId, dataArray, visualSteps) {
